@@ -1,63 +1,65 @@
-document.addEventListener('DOMContentLoaded', () => {
-  let titleInput = document.getElementById('title');
-  let ratingInput = document.getElementById('rating');
-  let titleEditInput = document.getElementById('title-edit');
-  let ratingEditInput = document.getElementById('rating-edit');
+document.addEventListener("DOMContentLoaded", () => {
+  let titleInput = document.getElementById("title");
+  let ratingInput = document.getElementById("rating");
+  let titleEditInput = document.getElementById("title-edit");
+  let ratingEditInput = document.getElementById("rating-edit");
   let data = [];
   let selectedMovie = {};
-  const api = 'http://127.0.0.1:8000/movies';
+  const api = "http://127.0.0.1:8000/movies";
 
-  // This function will handle the form reset after adding a new movie
+  // Function to reset the add movie form
   const resetForm = () => {
-    titleInput.value = '';
-    ratingInput.value = '';
+    titleInput.value = "";
+    ratingInput.value = "";
   };
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const searchInput = document.getElementById("search");
-  
-    // Check if the search input is being found
-    if (searchInput) {
-      console.log("Search input found");
-  
-      searchInput.addEventListener("keyup", () => {
-        const searchQuery = searchInput.value; // Get the value from the search input
-        console.log("Search input value:", searchQuery); // Debugging line
-  
-        // Ensure the refreshMovies function is being triggered
-        refreshMovies(searchQuery);
-      });
-    } else {
-      console.error("Search input not found");
-    }
-  });
-  
-  
-
-  const refreshMovies = (searchQuery = "") => {
-    console.log("Refreshing movies with search query:", searchQuery); // Debugging line
-    
-    const movies = document.getElementById('movies');
-    movies.innerHTML = ''; // Clear current movies
-  
-    // Filter the movies based on the search query
-    const filteredMovies = data.filter((movie) => {
-      console.log("Checking movie:", movie.title); // Debugging line
-      return movie.title.toLowerCase().includes(searchQuery.toLowerCase());
+  // Attach search event listener
+  const searchInput = document.getElementById("search");
+  if (searchInput) {
+    console.log("Search input detected!"); // Debugging log
+    searchInput.addEventListener("keyup", (event) => {
+      console.log("Key pressed:", event.key); // Debugging log
+      refreshMovies(searchInput.value); // Pass the search query to refreshMovies
     });
-  
-    // Log how many movies passed the filter
-    console.log("Filtered movies count:", filteredMovies.length);
-  
-    if (filteredMovies.length === 0) {
-      movies.innerHTML = "<p>No movies found</p>"; // Optional: display a message if no results
+  } else {
+    console.error("Search input NOT found!");
+  }
+
+  // Function to refresh movies list based on search query
+  const refreshMovies = (searchQuery = "") => {
+    console.log("Refreshing movies with search query:", searchQuery);
+
+    const moviesContainer = document.getElementById("movies");
+    moviesContainer.innerHTML = ""; // Clear the current movies list
+
+    // Convert search query to lowercase for case-insensitive matching
+    const lowerSearchQuery = searchQuery.toLowerCase().trim();
+
+    // Ensure `data` is populated before filtering
+    if (!data || data.length === 0) {
+      console.warn("Movie data is empty, fetching movies...");
+      return;
     }
-  
-    // Sort and display filtered movies
+
+    // Filter movies based on search input
+    const filteredMovies = data.filter((movie) => {
+      console.log("Checking movie:", movie.title);
+      return movie.title.toLowerCase().includes(lowerSearchQuery);
+    });
+
+    console.log("Filtered movies count:", filteredMovies.length);
+
+    // If no movies match, display a message
+    if (filteredMovies.length === 0) {
+      moviesContainer.innerHTML = "<p>No movies found</p>";
+      return;
+    }
+
+    // Sort and display the filtered movies
     filteredMovies
-      .sort((a, b) => b.rating - a.rating) // Sort movies by rating
+      .sort((a, b) => b.rating - a.rating)
       .forEach((movie) => {
-        const movieDiv = document.createElement('div');
+        const movieDiv = document.createElement("div");
         movieDiv.id = `movie-${movie.id}`;
         movieDiv.innerHTML = `
           <span class="fw-bold fs-4">${movie.title}</span>
@@ -67,86 +69,97 @@ document.addEventListener('DOMContentLoaded', () => {
             <i class="fas fa-trash-alt"></i> <!-- Delete icon -->
           </span>
         `;
-  
+
         // Add event listeners for edit & delete
-        movieDiv.querySelector('.fa-edit').addEventListener('click', () => tryEditMovie(movie.id));
-        movieDiv.querySelector('.fa-trash-alt').addEventListener('click', () => deleteMovie(movie.id));
-  
-        movies.appendChild(movieDiv);
+        movieDiv.querySelector(".fa-edit").addEventListener("click", () => tryEditMovie(movie.id));
+        movieDiv.querySelector(".fa-trash-alt").addEventListener("click", () => deleteMovie(movie.id));
+
+        moviesContainer.appendChild(movieDiv);
       });
-  
+
     resetForm(); // Clear the form after refresh
   };
-  
 
   const tryEditMovie = (id) => {
     const movie = data.find((x) => x.id === id);
     if (!movie) return; // Safety check
-  
+
     selectedMovie = movie;
-    document.getElementById('movie-id').innerText = movie.id;
+    document.getElementById("movie-id").innerText = movie.id;
     titleEditInput.value = movie.title;
     ratingEditInput.value = movie.rating;
-    document.getElementById('msg').innerHTML = '';
-  
+    document.getElementById("msg").innerHTML = "";
+
     // Open the modal programmatically
-    let editModal = new bootstrap.Modal(document.getElementById('modal-edit'));
+    let editModal = new bootstrap.Modal(document.getElementById("modal-edit"));
     editModal.show();
   };
-  
 
-  // Handle the movie update form submission
   document.getElementById('form-edit').addEventListener('submit', (e) => {
     e.preventDefault();
-
-    if (!titleEditInput.value) {
-      document.getElementById('msg').innerHTML = 'Movie cannot be blank';
-    } else {
-      editMovie(titleEditInput.value, ratingEditInput.value);
+  
+    const title = titleEditInput.value.trim();
+    const rating = parseFloat(ratingEditInput.value.trim());
+    const editMsg = document.getElementById('edit-msg'); // New separate message div
+  
+    if (!title) {
+      editMsg.innerHTML = 'Movie title cannot be blank';
+      return;
     }
+  
+    if (isNaN(rating) || rating < 1 || rating > 10) {
+      editMsg.innerHTML = 'Rating must be between 1 and 10';
+      return;
+    }
+  
+    editMsg.innerHTML = ''; // Clear any previous message
+    editMovie(title, rating);
   });
+  
+  
 
-  // This function will update the movie in the backend
+  // Function to update the movie in the backend
   const editMovie = (title, rating) => {
     const xhr = new XMLHttpRequest();
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4 && xhr.status === 200) {
         selectedMovie.title = title;
         selectedMovie.rating = rating;
-        refreshMovies(); // Refresh the movie list after updating
+        refreshMovies(document.getElementById("search").value); // Keep search filter
         // Close the modal
-        const closeBtn = document.getElementById('edit-close');
+        const closeBtn = document.getElementById("edit-close");
         closeBtn.click();
       }
     };
-    xhr.open('PUT', `${api}/${selectedMovie.id}`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+    xhr.open("PUT", `${api}/${selectedMovie.id}`, true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify({ title, rating }));
   };
 
-  // This function will delete the movie
+  // Function to delete a movie
   const deleteMovie = (id) => {
     const xhr = new XMLHttpRequest();
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4 && xhr.status === 200) {
         data = data.filter((x) => x.id !== id); // Remove the movie from the list
-        refreshMovies(); // Refresh the movie list after deletion
+        refreshMovies(document.getElementById("search").value); // Keep search filter
       }
     };
-    xhr.open('DELETE', `${api}/${id}`, true);
+    xhr.open("DELETE", `${api}/${id}`, true);
     xhr.send();
   };
 
-  // This function will load movies from the backend
+  // Function to load movies from the backend
   const getMovies = () => {
     const xhr = new XMLHttpRequest();
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4 && xhr.status === 200) {
         data = JSON.parse(xhr.responseText) || [];
-        refreshMovies();
+        console.log("Movies loaded from API:", data);
+        refreshMovies(); // Refresh with loaded movies
       }
     };
-    xhr.open('GET', api, true);
+    xhr.open("GET", api, true);
     xhr.send();
   };
 
@@ -156,27 +169,39 @@ document.addEventListener('DOMContentLoaded', () => {
   // Adding a new movie
   document.getElementById('form-add').addEventListener('submit', (e) => {
     e.preventDefault();
-
-    if (!titleInput.value) {
-      document.getElementById('msg').innerHTML = 'Movie cannot be blank';
-    } else {
-      addMovie(titleInput.value, ratingInput.value);
+  
+    const title = titleInput.value.trim();
+    const rating = parseFloat(ratingInput.value.trim());
+  
+    if (!title) {
+      document.getElementById('msg').innerHTML = 'Movie title cannot be blank';
+      return;
     }
+  
+    if (isNaN(rating) || rating < 1 || rating > 10) {
+      document.getElementById('msg').innerHTML = 'Rating must be between 1 and 10';
+      return;
+    }
+  
+    document.getElementById('msg').innerHTML = ''; // Clear any previous message
+    addMovie(title, rating);
   });
+  
 
+  // Function to add a movie
   const addMovie = (title, rating) => {
     const xhr = new XMLHttpRequest();
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4 && xhr.status === 201) {
         const newMovie = JSON.parse(xhr.responseText);
         data.push(newMovie);
-        refreshMovies();
-        const closeBtn = document.getElementById('add-close');
+        refreshMovies(document.getElementById("search").value); // Keep search filter
+        const closeBtn = document.getElementById("add-close");
         closeBtn.click(); // Close the modal after adding
       }
     };
-    xhr.open('POST', api, true);
-    xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+    xhr.open("POST", api, true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify({ title, rating }));
   };
 });
