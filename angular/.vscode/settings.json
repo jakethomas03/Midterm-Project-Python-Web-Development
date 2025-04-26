@@ -1,0 +1,6 @@
+{
+  "cSpell.words": ["devkit", "noopener", "toastr"],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  }
+}

@@ -1,0 +1,49 @@
+<div
+  class="d-flex flex-column align-items-center justify-content-center w-100 h-100"
+>
+  <img
+    ngSrc="logo.png"
+    alt="logo"
+    width="250"
+    height="250"
+    class="rounded-circle"
+    priority
+  />
+  <form (submit)="login()">
+    <div class="mb-3">
+      <label for="username" class="">Username</label>
+      <input
+        type="text"
+        class="form-control"
+        id="username"
+        name="username"
+        [(ngModel)]="username"
+      />
+    </div>
+    <div class="mb-3">
+      <label for="inputPassword3" class=""> Password </label>
+      <input
+        type="password"
+        name="password"
+        class="form-control"
+        id="inputPassword3"
+        [(ngModel)]="password"
+      />
+    </div>
+
+    <div class="d-flex align-items-center">
+      <button type="submit" class="btn btn-primary">Sign in</button>
+      <div class="mx-3">Or</div>
+      <a
+        routerLink="../signup"
+        routerLinkActive="router-link-active"
+        class="btn btn-outline-success"
+      >
+        Sign Up
+      </a>
+    </div>
+    <div class="text-danger">
+      {{ errorMsg }}
+    </div>
+  </form>
+</div>
